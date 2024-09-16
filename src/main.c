@@ -1,5 +1,5 @@
 #include "opts.h"
-#include "sock.h"
+#include "inet.h"
 #include "http.h"
 
 #include <stdio.h>

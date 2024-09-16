@@ -1,4 +1,4 @@
-#include "sock.h"
+#include "inet.h"
 #include "main.h"
 
 #include <stdio.h>

@@ -1,5 +1,6 @@
-#ifndef _SOCK_H
-#define _SOCK_H
+// networking and addressing
+#ifndef _INET_H
+#define _INET_H
 #include "file.h"
 
 #include <stdint.h>
