@@ -3,6 +3,16 @@
 #define _SOCK_H
 #include "file.h"
 
+#define SOCK_BUFF_SIZE 256 // TODO research the optimum
+
+// buffer struct for better socket I/O
+struct SOCK
+{
+    fd desc; // descriptor this socket consumes from
+    char buff[SOCK_BUFF_SIZE]; // data goes here
+    size_t used; // number of bytes in buffer
+};
+
 // get one char from a socket
 // returns 0 if the socket is closed
 // returns -1 on error
