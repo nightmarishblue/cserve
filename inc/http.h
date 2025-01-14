@@ -2,7 +2,7 @@
 #ifndef _HTTP_H
 #define _HTTP_H
 
-#include "inet.h"
+#include "file.h"
 
 #include <stdbool.h>
 

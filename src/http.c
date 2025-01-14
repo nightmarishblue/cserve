@@ -1,6 +1,7 @@
 #include "http.h"
 #include "main.h"
 #include "opts.h"
+#include "sock.h"
 #include "str.h"
 
 #include <stdio.h>
@@ -10,6 +11,7 @@
 #include <string.h>
 
 #include <unistd.h>
+#include <sys/socket.h> // for a send or 2
 #include <fcntl.h>
 #include <errno.h>
 
