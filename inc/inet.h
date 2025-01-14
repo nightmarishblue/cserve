@@ -25,6 +25,8 @@ bool closepeer(fd sock);
 // accept a connection from an opened port and place its details into the sockaddr
 // return the fd for the new socket
 fd acceptconn(fd sock, struct sockaddr* clientaddr, socklen_t* addrlen);
+
+// TODO NULterm, also return the number of bytes needed
 // place the IP of an internat address into a string of up to len chars
 // returning false on error
 bool ipstr(const struct in_addr* iaddr, size_t len, char str[len]);
