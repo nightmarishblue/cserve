@@ -13,6 +13,11 @@ struct SOCK
     size_t used; // number of bytes in buffer
 };
 
+typedef struct SOCK SOCK;
+
+// construct a SOCK with the given file descriptor, containing no data yet
+SOCK mksock(fd desc);
+
 // get one char from a socket
 // returns 0 if the socket is closed
 // returns -1 on error

@@ -7,6 +7,14 @@
 
 #include <sys/socket.h>
 
+SOCK mksock(fd desc)
+{
+    SOCK out;
+    out.desc = desc;
+    out.used = 0;
+    return out;
+}
+
 int sgetc(fd sock, int flags)
 {
     unsigned char c[1];
