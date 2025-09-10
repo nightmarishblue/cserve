@@ -10,7 +10,7 @@ struct SOCK
 {
     fd desc; // descriptor this socket consumes from
     char buff[SOCK_BUFF_SIZE]; // data goes here
-    size_t used; // number of bytes in buffer
+    size_t len; // number of bytes in buffer
 };
 
 typedef struct SOCK SOCK;

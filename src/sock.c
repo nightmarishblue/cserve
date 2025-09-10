@@ -11,7 +11,7 @@ SOCK mksock(fd desc)
 {
     SOCK out;
     out.desc = desc;
-    out.used = 0;
+    out.len = 0;
     return out;
 }
 
