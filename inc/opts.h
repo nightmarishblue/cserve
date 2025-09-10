@@ -22,7 +22,7 @@ struct cserveopt
     bool takesarg;
 };
 
-extern const char* usagemsg;
+extern const char* usagemsg; // FIXME antipattern
 extern const struct cserveconf* options;
 
 // parse the input arguments and configure the struct as accordingly

@@ -95,9 +95,12 @@ bool sendstatus(fd sock, enum version version, enum code code)
     return success; // this is a lot of error checking I know
 }
 
+#define MAX_REQUEST_LEN 4096 // TODO
+
 // read the first line out of a socket and figure out if it's a valid request
 // populate the request object with its version and file identifier
 // return the code to respond with (will be 4xx if bad)
+// FIXME out parameters bad
 enum code parsereq(SBUFF* sock, struct request* request)
 {
     // read first few bytes - ensure they are GET /
@@ -108,7 +111,7 @@ enum code parsereq(SBUFF* sock, struct request* request)
     else if (request->method > GET) // we only have the first one done @u@
     {
         fprintf(stderr, "oops... we don't have '%s' @u@\n", strfrommethod(request->method));
-        return NOT_IMPLEMENTED;
+        return IM_A_TEAPOT;
     }
 
     // if the next character isn't a /, KILL
@@ -117,7 +120,7 @@ enum code parsereq(SBUFF* sock, struct request* request)
 
     // extract the path
     // read up to ' ', up to limit (-1 because we took in the first char already)
-    if (readuntilchar(sock, MAX_REQ_PATH - 1, &request->identifier[1], ' ') == 256)
+    if (readuntilchar(sock, MAX_REQ_PATH_LEN - 1, &request->identifier[1], ' ') == MAX_REQ_PATH_LEN)
         return URI_TOO_LONG;
 
     // extract the version string
@@ -132,6 +135,25 @@ enum code parsereq(SBUFF* sock, struct request* request)
     if (sbuffgetc(sock) != '\n')
         return BAD_REQUEST;
 
+    // consume the remaining headers
+    // TODO actually parse - at least the important ones like Content-Length
+    const char* end = "\r\n\r\n";
+    size_t j = 0;
+    for (int i = 0; i < MAX_REQUEST_LEN; i++)
+    {
+        int c = sbuffgetc(sock);
+        if (c == -1) {
+            eprintf("Error reading from socket");
+            return INTERNAL_SERVER_ERROR;
+        }
+        if (c == end[j])
+        {
+            if (end[++j] == '\0') break; // FIXME does not consume any request body
+        }
+        else
+            j = 0;
+    }
+
     return OK;
 }
 
@@ -139,7 +161,7 @@ enum code parsereq(SBUFF* sock, struct request* request)
 // return the size of the file in bytes, or -1 if an error occurred
 off_t getfile(struct request* req, struct response* res)
 {
-    bool index = req->identifier[strnlen(req->identifier, 256) - 1] == '/';
+    bool index = req->identifier[strnlen(req->identifier, MAX_REQ_PATH_LEN) - 1] == '/';
     char* filepath; // if index is needed, this will be on heap
     if (index)
     {
@@ -180,7 +202,7 @@ off_t getfile(struct request* req, struct response* res)
     off_t size = filesize(res->file);
     if (size == -1)
         res->code = INTERNAL_SERVER_ERROR;
-    return size; // i think it would be cleaner if this returned a response struct :/
+    return size; // FIXME i think it would be cleaner if this returned a response struct :/
 }
 
 bool serve(SBUFF* sock)
@@ -190,7 +212,6 @@ bool serve(SBUFF* sock)
     res.code = parsereq(sock, &req);
 
     // TODO parse headers somewhere about here
-    // TODO must consume until \r\n\r\n or the next request will break
     printf("%s %s HTTP/%s\n", strfrommethod(req.method), req.identifier, strfromversion(req.version));
     if (res.code != OK)
     {
@@ -202,9 +223,10 @@ bool serve(SBUFF* sock)
     }
 
     off_t fsize = getfile(&req, &res);
+    // if fsize = 0, this prints ok, but the file isn't read - have to move this until after
     sendstatus(sock->desc, req.version, res.code);
 
-    if (fsize > 0) // no need to check file, fsize tells us if it's open
+    if (fsize != -1) // no need to check file, fsize tells us if it's open
     {
         sockprintf(sock->desc, "Content-Length: %ld\r\n", fsize);
         send(sock->desc, "\r\n", 2, 0);

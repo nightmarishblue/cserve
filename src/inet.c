@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #include <unistd.h>
 
@@ -50,8 +51,13 @@ bool closesock(fd sock)
 
 bool closepeer(fd sock)
 {
-    if (shutdown(sock, SHUT_WR) == -1)
-        eprintf("could not shutdown peer connection");
+    if (shutdown(sock, SHUT_WR) == -1) {
+        if (errno == ENOTCONN)
+            printf("client closed connection\n"); // should be the only reason for ENOTCONN
+        else
+            eprintf("could not shutdown peer connection");
+
+    }
     return closesock(sock);
 }
 

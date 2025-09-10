@@ -3,28 +3,26 @@
 #define _SOCK_H
 #include "file.h"
 
-#define SOCK_BUFF_SIZE 256 // TODO research the optimum
+#define SBUFF_SIZE 256 // TODO research the optimum
 
 // buffer struct for better socket I/O
-struct SBUFF
+typedef struct
 {
     fd desc; // descriptor this socket consumes from
-    char buff[SOCK_BUFF_SIZE]; // data goes here
+    char buff[SBUFF_SIZE]; // data goes here
     size_t len; // number of bytes in buffer
     size_t used; // number of bytes consumed
-};
+} SBUFF;
 
-typedef struct SBUFF SBUFF;
-
-// construct a SOCK with the given file descriptor, containing no data yet
+// construct a SBUFF with the given file descriptor, containing no data yet
 SBUFF mksbuff(fd desc);
 
-// make a call to this SOCK's socket and overwrite its buffer
+// make a read from this SBUFF's socket and overwrite its buffer
 // return number of bytes acquired (and thus new len)
-// return -1 on error (this SOCK is unchanged)
+// return -1 on error (this SBUFF is unchanged)
 ssize_t sbuffrecv(SBUFF* this, int flags);
 
-// consume and return the next character in this SOCK's buffer
+// consume and return the next character in this SBUFF's buffer
 // refills with sbuffrecv if needed
 // return -1 if none is available
 int sbuffgetc(SBUFF* this);
@@ -32,7 +30,11 @@ int sbuffgetc(SBUFF* this);
 // get one char from a socket
 // returns 0 if the socket is closed
 // returns -1 on error
-int sgetc(fd sock, int flags);
+int sgetc(fd sock, int flags); // TODO prune
+
+// peek at the next character in this SBUFF's buffer, refilling if needed
+// return -1 if none available
+int sbuffpeek(SBUFF* this);
 
 // simpler function to read at most len - 1 bytes into a buffer of len size until the illegal char appears
 // returns the number of chars read, and terminates the string

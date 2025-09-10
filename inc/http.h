@@ -54,12 +54,12 @@ struct status
     enum code code;
 };
 
-#define MAX_REQ_PATH 256
+#define MAX_REQ_PATH_LEN 256
 struct request
 {
     enum method method; // what method this request is
     enum version version; // the request's version
-    char identifier[256]; // the path to the file
+    char identifier[MAX_REQ_PATH_LEN]; // the path to the file
 };
 
 struct response
@@ -73,6 +73,6 @@ struct response
 enum version versionfromstr(const char verstr[MAX_VERSION_LEN]);
 
 // read from a given socket and answer 1 HTTP request
-// return false if connection should be broken
+// return false if a HTTP error was encountered
 bool serve(SBUFF* sock);
 #endif

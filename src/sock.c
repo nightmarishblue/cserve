@@ -28,7 +28,7 @@ char* sockhead(SBUFF* this)
 
 ssize_t sbuffrecv(SBUFF* this, int flags)
 {
-    ssize_t received = recv(this->desc, this->buff, SOCK_BUFF_SIZE, flags);
+    ssize_t received = recv(this->desc, this->buff, SBUFF_SIZE, flags);
     if (received != -1)
     {
         this->used = 0;
@@ -42,13 +42,19 @@ ssize_t sbuffrecv(SBUFF* this, int flags)
 bool sockrefill(SBUFF* this)
 {
     if (this->used < this->len) return true;
-    return sbuffrecv(this, 0) != -1;
+    return sbuffrecv(this, 0) > 0; // FIXME maybe treating "no data" and "error occurred" the same is suboptimal...
 }
 
 int sbuffgetc(SBUFF* this)
 {
     if (!sockrefill(this)) return -1;
     return this->buff[this->used++];
+}
+
+int sbuffpeek(SBUFF* this)
+{
+    if (!sockrefill(this)) return -1;
+    return this->buff[this->used];
 }
 
 int sgetc(fd sock, int flags)
@@ -100,8 +106,8 @@ int sockprintf(fd sock, const char* fmt, ...)
 ssize_t transmitfile(fd sock, fd file, size_t n)
 {
     // TODO ensure this compiles on systems without sendfile
-    ssize_t ret = sendfile(sock, file, NULL, n);
+    ssize_t ret = sendfile(sock, file, NULL, n); // BUG this does not retry
     if (ret == -1)
         eprintf("could not transmit file");
-    return -1;
+    return ret;
 }

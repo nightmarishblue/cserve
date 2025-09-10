@@ -1,3 +1,5 @@
+.PHONY: debug
+
 COMPILER_OPTS := -Wall -Wpedantic
 
 TARGET := cserve
@@ -17,7 +19,10 @@ test: build
 	@EXE="./$(OUT_DIR)$(TARGET)" "./$(TST_DIR)/all.sh"
 
 debug: COMPILER_OPTS += -g
-debug: build
+debug: clean build
+
+clean:
+	rm "$(OUT_DIR)$(TARGET)" || true
 
 $(OUT_DIR)$(TARGET): $(SRC_DIR)* | make_out
 	gcc "$(SRC_DIR)"* -I "$(INC_DIR)" -o "$(OUT_DIR)$(TARGET)" $(COMPILER_OPTS)

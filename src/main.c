@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
             printf("Received connection from %s\n", name);
 
         SBUFF socket = mksbuff(clisock);
-        while (serve(&socket));
+        while (serve(&socket) && sbuffpeek(&socket) != -1);
         closepeer(clisock);
     }
 
