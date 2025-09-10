@@ -24,6 +24,11 @@ SOCK mksock(fd desc);
 // return -1 on error (this SOCK is unchanged)
 ssize_t sockrecv(SOCK* this, int flags);
 
+// consume and return the next character in this SOCK's buffer
+// refills with sockrecv if needed
+// return -1 if none is available
+int sockgetc(SOCK* this);
+
 // get one char from a socket
 // returns 0 if the socket is closed
 // returns -1 on error

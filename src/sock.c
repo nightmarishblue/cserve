@@ -37,6 +37,20 @@ ssize_t sockrecv(SOCK* this, int flags)
     return received;
 }
 
+// refill this SOCK if needed
+// return false if the refill failed and this SOCK is empty
+bool sockrefill(SOCK* this)
+{
+    if (this->used < this->len) return true;
+    return sockrecv(this, 0) != -1;
+}
+
+int sockgetc(SOCK* this)
+{
+    if (!sockrefill(this)) return -1;
+    return this->buff[this->used++];
+}
+
 int sgetc(fd sock, int flags)
 {
     unsigned char c[1];
