@@ -98,7 +98,7 @@ bool sendstatus(fd sock, enum version version, enum code code)
 // read the first line out of a socket and figure out if it's a valid request
 // populate the request object with its version and file identifier
 // return the code to respond with (will be 4xx if bad)
-enum code parsereq(fd sock, struct request* request)
+enum code parsereq(SOCK* sock, struct request* request)
 {
     // read first few bytes - ensure they are GET /
     char mthdstr[MAX_METHOD_LEN];
@@ -112,7 +112,7 @@ enum code parsereq(fd sock, struct request* request)
     }
 
     // if the next character isn't a /, KILL
-    if ((*request->identifier = sgetc(sock, 0)) != '/') // consume this so we don't have to read it again
+    if ((*request->identifier = sockgetc(sock)) != '/') // consume this so we don't have to read it again
         return BAD_REQUEST;
 
     // extract the path
@@ -129,7 +129,7 @@ enum code parsereq(fd sock, struct request* request)
     request->version = version;
     
     // if the next character isn't a \n, KILL
-    if (sgetc(sock, 0) != '\n')
+    if (sockgetc(sock) != '\n')
         return BAD_REQUEST;
 
     return OK;
@@ -187,7 +187,7 @@ bool serve(SOCK* sock)
 {
     struct request req = { .method = GET, .version = DEFAULT_HTTP_VERSION, .identifier = "" };
     struct response res;
-    res.code = parsereq(sock->desc, &req);
+    res.code = parsereq(sock, &req);
 
     // TODO parse headers somewhere about here
     // TODO must consume until \r\n\r\n or the next request will break
