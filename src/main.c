@@ -1,6 +1,7 @@
 #include "opts.h"
 #include "inet.h"
 #include "http.h"
+#include "sock.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,10 +29,13 @@ int main(int argc, char* argv[])
         socklen_t addrsz = sizeof(clientaddr);
         fd clisock = acceptconn(sockid, (struct sockaddr*) &clientaddr, &addrsz);
         if (clisock == -1) continue;
+
         char name[16];
         if (addrstr(&clientaddr, 16, name))
             printf("Received connection from %s\n", name);
-        while (serve(clisock));
+
+        SOCK socket = mksock(clisock);
+        while (serve(&socket));
         closepeer(clisock);
     }
 

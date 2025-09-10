@@ -183,11 +183,11 @@ off_t getfile(struct request* req, struct response* res)
     return size; // i think it would be cleaner if this returned a response struct :/
 }
 
-bool serve(fd sock)
+bool serve(SOCK* sock)
 {
     struct request req = { .method = GET, .version = DEFAULT_HTTP_VERSION, .identifier = "" };
     struct response res;
-    res.code = parsereq(sock, &req);
+    res.code = parsereq(sock->desc, &req);
 
     // TODO parse headers somewhere about here
     // TODO must consume until \r\n\r\n or the next request will break
@@ -197,22 +197,22 @@ bool serve(fd sock)
         const struct status* stat = statusfromcode(res.code);
         if (stat)
             fprintf(stderr, "erroneous request: %s\n", stat->desc);
-        sendstatus(sock, req.version, res.code);
+        sendstatus(sock->desc, req.version, res.code);
         return false; // do we really need to break the connection here?
     }
 
     off_t fsize = getfile(&req, &res);
-    sendstatus(sock, req.version, res.code);
+    sendstatus(sock->desc, req.version, res.code);
 
     if (fsize > 0) // no need to check file, fsize tells us if it's open
     {
-        sockprintf(sock, "Content-Length: %ld\r\n", fsize);
-        send(sock, "\r\n", 2, 0);
-        transmitfile(sock, res.file, fsize); // TODO check return value and break connection if bad
+        sockprintf(sock->desc, "Content-Length: %ld\r\n", fsize);
+        send(sock->desc, "\r\n", 2, 0);
+        transmitfile(sock->desc, res.file, fsize); // TODO check return value and break connection if bad
     }
     else
     {
-        send(sock, "\r\n", 2, 0);
+        send(sock->desc, "\r\n", 2, 0);
     }
 
     if (res.file != -1)
