@@ -7,6 +7,8 @@
 
 #include <sys/socket.h>
 
+#include <sys/sendfile.h>
+
 SOCK mksock(fd desc)
 {
     SOCK out;
@@ -63,6 +65,7 @@ int sockprintf(fd sock, const char* fmt, ...)
 
 ssize_t transmitfile(fd sock, fd file, size_t n)
 {
+    // TODO ensure this compiles on systems without sendfile
     ssize_t ret = sendfile(sock, file, NULL, n);
     if (ret == -1)
         eprintf("could not transmit file");
