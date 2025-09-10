@@ -74,5 +74,5 @@ enum version versionfromstr(const char verstr[MAX_VERSION_LEN]);
 
 // read from a given socket and answer 1 HTTP request
 // return false if connection should be broken
-bool serve(SOCK* sock);
+bool serve(SBUFF* sock);
 #endif

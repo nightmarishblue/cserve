@@ -11,9 +11,9 @@
 
 #include <sys/sendfile.h>
 
-SOCK mksock(fd desc)
+SBUFF mksbuff(fd desc)
 {
-    SOCK out;
+    SBUFF out;
     out.desc = desc;
     out.len = 0;
     out.used = 0;
@@ -21,12 +21,12 @@ SOCK mksock(fd desc)
 }
 
 // get this's head (the next byte of data in its buffer)
-char* sockhead(SOCK* this)
+char* sockhead(SBUFF* this)
 {
     return &this->buff[this->used];
 }
 
-ssize_t sockrecv(SOCK* this, int flags)
+ssize_t sbuffrecv(SBUFF* this, int flags)
 {
     ssize_t received = recv(this->desc, this->buff, SOCK_BUFF_SIZE, flags);
     if (received != -1)
@@ -39,13 +39,13 @@ ssize_t sockrecv(SOCK* this, int flags)
 
 // refill this SOCK if needed
 // return false if the refill failed and this SOCK is empty
-bool sockrefill(SOCK* this)
+bool sockrefill(SBUFF* this)
 {
     if (this->used < this->len) return true;
-    return sockrecv(this, 0) != -1;
+    return sbuffrecv(this, 0) != -1;
 }
 
-int sockgetc(SOCK* this)
+int sbuffgetc(SBUFF* this)
 {
     if (!sockrefill(this)) return -1;
     return this->buff[this->used++];
@@ -59,13 +59,13 @@ int sgetc(fd sock, int flags)
     return *c;
 }
 
-size_t readuntilchar(SOCK* sock, const size_t len, char buf[len], char illegal)
+size_t readuntilchar(SBUFF* sock, const size_t len, char buf[len], char illegal)
 {
     if (len == 0) return 0; // safer to simply exit if len is 0
     // go up len - 1 times - i sure hope GCC optimises this
     for (size_t i = 0; i < len - 1; i++)
     {
-        int c = sockgetc(sock);
+        int c = sbuffgetc(sock);
         if (c == illegal)
         {
             buf[i] = '\0';

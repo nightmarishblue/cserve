@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
         if (addrstr(&clientaddr, 16, name))
             printf("Received connection from %s\n", name);
 
-        SOCK socket = mksock(clisock);
+        SBUFF socket = mksbuff(clisock);
         while (serve(&socket));
         closepeer(clisock);
     }

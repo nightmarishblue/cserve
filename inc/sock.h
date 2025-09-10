@@ -6,7 +6,7 @@
 #define SOCK_BUFF_SIZE 256 // TODO research the optimum
 
 // buffer struct for better socket I/O
-struct SOCK
+struct SBUFF
 {
     fd desc; // descriptor this socket consumes from
     char buff[SOCK_BUFF_SIZE]; // data goes here
@@ -14,20 +14,20 @@ struct SOCK
     size_t used; // number of bytes consumed
 };
 
-typedef struct SOCK SOCK;
+typedef struct SBUFF SBUFF;
 
 // construct a SOCK with the given file descriptor, containing no data yet
-SOCK mksock(fd desc);
+SBUFF mksbuff(fd desc);
 
 // make a call to this SOCK's socket and overwrite its buffer
 // return number of bytes acquired (and thus new len)
 // return -1 on error (this SOCK is unchanged)
-ssize_t sockrecv(SOCK* this, int flags);
+ssize_t sbuffrecv(SBUFF* this, int flags);
 
 // consume and return the next character in this SOCK's buffer
-// refills with sockrecv if needed
+// refills with sbuffrecv if needed
 // return -1 if none is available
-int sockgetc(SOCK* this);
+int sbuffgetc(SBUFF* this);
 
 // get one char from a socket
 // returns 0 if the socket is closed
@@ -37,7 +37,7 @@ int sgetc(fd sock, int flags);
 // simpler function to read at most len - 1 bytes into a buffer of len size until the illegal char appears
 // returns the number of chars read, and terminates the string
 // returns len on failure, like snprintf
-size_t readuntilchar(SOCK* sock, size_t len, char buf[len], char illegal);
+size_t readuntilchar(SBUFF* sock, size_t len, char buf[len], char illegal);
 
 // write into a socket with formatting
 int sockprintf(fd sock, const char* fmt, ...);
