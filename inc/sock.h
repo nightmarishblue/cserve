@@ -11,12 +11,18 @@ struct SOCK
     fd desc; // descriptor this socket consumes from
     char buff[SOCK_BUFF_SIZE]; // data goes here
     size_t len; // number of bytes in buffer
+    size_t used; // number of bytes consumed
 };
 
 typedef struct SOCK SOCK;
 
 // construct a SOCK with the given file descriptor, containing no data yet
 SOCK mksock(fd desc);
+
+// make a call to this SOCK's socket and overwrite its buffer
+// return number of bytes acquired (and thus new len)
+// return -1 on error (this SOCK is unchanged)
+ssize_t sockrecv(SOCK* this, int flags);
 
 // get one char from a socket
 // returns 0 if the socket is closed

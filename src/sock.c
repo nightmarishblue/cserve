@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include <unistd.h>
+
 #include <sys/socket.h>
 
 #include <sys/sendfile.h>
@@ -14,7 +16,25 @@ SOCK mksock(fd desc)
     SOCK out;
     out.desc = desc;
     out.len = 0;
+    out.used = 0;
     return out;
+}
+
+// get this's head (the next byte of data in its buffer)
+char* sockhead(SOCK* this)
+{
+    return &this->buff[this->used];
+}
+
+ssize_t sockrecv(SOCK* this, int flags)
+{
+    ssize_t received = recv(this->desc, this->buff, SOCK_BUFF_SIZE, flags);
+    if (received != -1)
+    {
+        this->used = 0;
+        this->len = received;
+    }
+    return received;
 }
 
 int sgetc(fd sock, int flags)
