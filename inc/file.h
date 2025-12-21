@@ -1,6 +1,7 @@
 #ifndef _FILE_H
 #define _FILE_H
 #include <stdbool.h>
+#include <sys/stat.h>
 
 #include <sys/types.h>
 
@@ -22,4 +23,12 @@ fd opend(const char* path);
 // prevents escaping the given directory
 // return the file descriptor, or -1 on error, in which case errno is set
 fd openunder(fd dir, const char* relpath, int flags);
+
+// check if we can read the given file
+// errno is set if false
+bool canread(fd dir, const char* relpath);
+
+// stat the file relative to dir
+// return success
+bool statfile(fd dir, const char* relpath, struct stat* result);
 #endif

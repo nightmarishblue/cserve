@@ -108,20 +108,28 @@ enum code parsereq(SBUFF* sock, struct request* request)
     // reject invalid input - smallest method name is GET, 3 chars
     if (readuntilchar(sock, MAX_METHOD_LEN, mthdstr, ' ') < 3 || (request->method = methodfromstr(mthdstr)) == -1)
         return BAD_REQUEST;
-    else if (request->method > GET) // we only have the first one done @u@
+    else if (request->method > HEAD)
     {
         fprintf(stderr, "oops... we don't have '%s' @u@\n", strfrommethod(request->method));
         return IM_A_TEAPOT;
     }
 
     // if the next character isn't a /, KILL
-    if ((*request->identifier = sbuffgetc(sock)) != '/') // consume this so we don't have to read it again
+    if ((request->identifier[0] = sbuffgetc(sock)) != '/') // consume this so we don't have to read it again
         return BAD_REQUEST;
 
     // extract the path
-    // read up to ' ', up to limit (-1 because we took in the first char already)
-    if (readuntilchar(sock, MAX_REQ_PATH_LEN - 1, &request->identifier[1], ' ') == MAX_REQ_PATH_LEN)
+    // read up to ' ', up to limit
+    // you would think we should subtract 1 from this, but due to null-term nonsense, no need
+    size_t pathlen = readuntilchar(sock, MAX_REQ_PATH_LEN, &request->identifier[1], ' ');
+    if (pathlen == MAX_REQ_PATH_LEN) // returns len on failure
         return URI_TOO_LONG;
+    
+    // add index.html to the identifier if there's no file
+    // BUG: /folder and /folder/ are both valid request targets I think
+    // TODO also maybe consider dropping the leading / too if we're gonna hammer the data
+    if (request->identifier[pathlen] == '/')
+        strcpy(&request->identifier[pathlen + 1], INDEX);
 
     // extract the version string
     char verstr[MAX_VERSION_LEN];
@@ -157,53 +165,43 @@ enum code parsereq(SBUFF* sock, struct request* request)
     return OK;
 }
 
+enum code errorcode(int errorno) {
+    switch (errno)
+    {
+        // file errors
+        case ENOENT:
+            return NOT_FOUND;
+        case EACCES:
+            return FORBIDDEN;
+        case ENAMETOOLONG:
+            return URI_TOO_LONG;
+
+        default:
+            return INTERNAL_SERVER_ERROR;
+    }
+}
+
 // open the file identified by a request, and store the resultant handle and response code in res
 // return the size of the file in bytes, or -1 if an error occurred
 off_t getfile(struct request* req, struct response* res)
 {
-    bool index = req->identifier[strnlen(req->identifier, MAX_REQ_PATH_LEN) - 1] == '/';
-    char* filepath; // if index is needed, this will be on heap
-    if (index)
-    {
-        filepath = msprintf("%s%s", req->identifier, "index.html"); // have to skip the leading / for openat
-        if (!filepath)
-        {
-            fprintf(stderr, "error sprintfing the path\n");
-            return -1;
-        }
-    }
-    else
-        filepath = req->identifier; //msprintf("%s/%s", options->srvdirpath, req->identifier);
-
+    const char* filepath = req->identifier;
     res->file = openunder(options->srvdir, filepath, O_RDONLY);
     // the filepath is technically unneeded here
     if (res->file == -1)
     {
         eprintf("could not open file '%s'", filepath);
-        if (index)
-            free(filepath);
-        switch (errno)
-        {
-        case ENOENT:
-            res->code = NOT_FOUND; break;
-        case EACCES:
-            res->code = FORBIDDEN; break;
-        case ENAMETOOLONG:
-            res->code = URI_TOO_LONG; break;
-        default:
-            res->code = INTERNAL_SERVER_ERROR; break;
-        }
+        res->code = errorcode(errno);
         return -1;
     }
-
-    if (index)
-        free(filepath);
 
     off_t size = filesize(res->file);
     if (size == -1)
         res->code = INTERNAL_SERVER_ERROR;
     return size; // FIXME i think it would be cleaner if this returned a response struct :/
 }
+
+#define EMPTY "Content-Length: 0\r\n\r\n" // GET responses are assumed to have a body by default
 
 bool serve(SBUFF* sock)
 {
@@ -222,22 +220,57 @@ bool serve(SBUFF* sock)
         return false; // do we really need to break the connection here?
     }
 
-    off_t fsize = getfile(&req, &res);
-    sendstatus(sock->desc, req.version, res.code);
-
-    if (fsize != -1) // no need to check file, fsize tells us if it's open
+    // TODO probably throw errors if the file isn't "regular"
+    switch (req.method)
     {
-        sockprintf(sock->desc, "Content-Length: %ld\r\n\r\n", fsize);
-        transmitfile(sock->desc, res.file, fsize); // TODO check return value and break connection if bad
-    }
-    else
-    {
-        const char message[] = "Content-Length: 0\r\n\r\n";
-        send(sock->desc, message, sizeof(message) - 1, 0);
-    }
+        case GET: {
+            // open the file and send it
+            off_t fsize = getfile(&req, &res);
+            sendstatus(sock->desc, req.version, res.code);
 
-    if (res.file != -1)
-        close(res.file);
+            if (fsize != -1) // no need to check file, fsize tells us if it's open
+            {
+                sockprintf(sock->desc, "Content-Length: %ld\r\n\r\n", fsize);
+                transmitfile(sock->desc, res.file, fsize); // TODO check return value and break connection if bad
+            }
+            else
+            {
+                send(sock->desc, EMPTY, sizeof(EMPTY) - 1, 0);
+            }
+
+            if (res.file != -1)
+                close(res.file);
+            
+            break;
+        };
+        case HEAD: {
+            // stat the file - don't open it
+            // check if we can access the file
+            if (!canread(options->srvdir, req.identifier + 1)) {
+                eprintf("cannot access file at relative path %s", req.identifier + 1);
+                sendstatus(sock->desc, req.version, errorcode(errno));
+                send(sock->desc, EMPTY, sizeof(EMPTY) - 1, 0);
+                break;
+            }
+
+            struct stat stats;
+            if (!statfile(options->srvdir, req.identifier + 1, &stats)) {
+                eprintf("could not stat relative path %s", req.identifier + 1);
+                sendstatus(sock->desc, req.version, errorcode(errno)); // figure out why
+                send(sock->desc, EMPTY, sizeof(EMPTY) - 1, 0);
+                break; // not a fatal error
+            }
+
+            sendstatus(sock->desc, req.version, OK);
+            sockprintf(sock->desc, "Content-Length: %ld\r\n\r\n", stats.st_size);
+
+            break;
+        };
+        default: {
+            fprintf(stderr, "Illegal state: unsupported method '%s'\n", strfrommethod(req.method));
+            return false;
+        };
+    }
 
     return true;
 }

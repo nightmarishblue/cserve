@@ -68,7 +68,7 @@ int sgetc(fd sock, int flags)
 size_t readuntilchar(SBUFF* sock, const size_t len, char buf[len], char illegal)
 {
     if (len == 0) return 0; // safer to simply exit if len is 0
-    // go up len - 1 times - i sure hope GCC optimises this
+    // consume len - 1 chars
     for (size_t i = 0; i < len - 1; i++)
     {
         int c = sbuffgetc(sock);
@@ -86,7 +86,7 @@ size_t readuntilchar(SBUFF* sock, const size_t len, char buf[len], char illegal)
     }
     buf[len - 1] = '\0'; // terminate the string
     // peek at the next char and consume it if it's the breakchar
-    if (sockrefill(sock) && sock->buff[sock->used] == illegal)
+    if (sbuffpeek(sock) == illegal)
     {
         sock->used++;
         return len - 1; // also return the number of bytes consumed

@@ -54,12 +54,15 @@ struct status
     enum code code;
 };
 
+#define INDEX "index.html"
+
 #define MAX_REQ_PATH_LEN 256
 struct request
 {
     enum method method; // what method this request is
     enum version version; // the request's version
-    char identifier[MAX_REQ_PATH_LEN]; // the path to the file
+    char identifier[MAX_REQ_PATH_LEN + 1 + sizeof(INDEX) - 1]; // the path to the file - extra storage for indexes
+    // can we get away with not null-terminating?
 };
 
 struct response

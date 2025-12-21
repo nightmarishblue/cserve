@@ -1,13 +1,12 @@
 #include "file.h"
 #include "main.h"
 
+#include <unistd.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/syscall.h> // to check if openat2 is supported
 
 #ifdef SYS_openat2
     #include <linux/openat2.h>
-    #include <unistd.h>
 #endif
 
 off_t filesize(fd file)
@@ -55,4 +54,15 @@ fd openunder(fd dir, const char* relpath, int flags)
         return openat2(dir, relpath, &how, sizeof(how));
     #endif
     // TODO provide an alternative approach so this compiles outside Linux >= 5.6
+}
+
+bool canread(fd dir, const char* relpath)
+{
+    return faccessat(dir, relpath, R_OK, 0) == 0;
+}
+
+bool statfile(fd dir, const char* relpath, struct stat* result)
+{
+    // TODO alternative for older POSIX?
+    return fstatat(dir, relpath, result, 0) == 0;
 }
