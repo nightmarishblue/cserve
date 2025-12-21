@@ -223,18 +223,17 @@ bool serve(SBUFF* sock)
     }
 
     off_t fsize = getfile(&req, &res);
-    // if fsize = 0, this prints ok, but the file isn't read - have to move this until after
     sendstatus(sock->desc, req.version, res.code);
 
     if (fsize != -1) // no need to check file, fsize tells us if it's open
     {
-        sockprintf(sock->desc, "Content-Length: %ld\r\n", fsize);
-        send(sock->desc, "\r\n", 2, 0);
+        sockprintf(sock->desc, "Content-Length: %ld\r\n\r\n", fsize);
         transmitfile(sock->desc, res.file, fsize); // TODO check return value and break connection if bad
     }
     else
     {
-        send(sock->desc, "\r\n", 2, 0);
+        const char message[] = "Content-Length: 0\r\n\r\n";
+        send(sock->desc, message, sizeof(message) - 1, 0);
     }
 
     if (res.file != -1)
