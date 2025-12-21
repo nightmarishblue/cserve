@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
 
     while (true)
     {
+        printf("Waiting for connection...\n");
         struct sockaddr_in clientaddr;
         socklen_t addrsz = sizeof(clientaddr);
         fd clisock = acceptconn(sockid, (struct sockaddr*) &clientaddr, &addrsz);
@@ -35,7 +36,9 @@ int main(int argc, char* argv[])
             printf("Received connection from %s\n", name);
 
         SBUFF socket = mksbuff(clisock);
+        do puts("Serving request...\n");
         while (serve(&socket) && sbuffpeek(&socket) != -1);
+        puts("Closing connection...");
         closepeer(clisock);
     }
 

@@ -10,7 +10,6 @@
 #include <unistd.h>
 
 #include <sys/socket.h> // socket API
-#include <sys/sendfile.h> // faster, easier way to copy files
 #include <sys/time.h>
 #include <arpa/inet.h> // get human-readable ip names
 
@@ -52,11 +51,7 @@ bool closesock(fd sock)
 bool closepeer(fd sock)
 {
     if (shutdown(sock, SHUT_WR) == -1) {
-        if (errno == ENOTCONN)
-            printf("client closed connection\n"); // should be the only reason for ENOTCONN
-        else
-            eprintf("could not shutdown peer connection");
-
+        eprintf("could not shutdown socket");
     }
     return closesock(sock);
 }
@@ -67,6 +62,7 @@ fd acceptconn(fd sock, struct sockaddr* clientaddr, socklen_t* addrlen)
     fd conn = accept(sock, clientaddr, addrlen);
     if (conn == -1)
         eprintf("could not create socket for client");
+    // TODO mess about with timeouts
     // if (setsockopt(conn, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) != 0)
     // {
     //     eprintf("could not set timeout on client socket: ");
